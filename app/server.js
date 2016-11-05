@@ -2,12 +2,18 @@ var express = require('express');
 var app = express();
 var spawn = require('child_process').spawn;
 var path = require('path');
+var cors = require('cors');
 
 var fs = require('fs');
 var settings = JSON.parse(fs.readFileSync(path.resolve(__dirname, './settings.json'), 'utf8'));
 
 var nhl_script = path.resolve(__dirname, './nhl.sh');
 var nhl_css_script = path.resolve(__dirname, './nhl-css.sh');
+
+if (settings.origin) {
+  app.use(cors({origin: settings.origin}));
+  //app.options('*', cors());
+}
 
 var newLocalDate = function() {
   return new Date()
@@ -36,10 +42,6 @@ var run = function(command, args, callback) {
 };
 
 var send = function (req, res, obj, status) {
-  if (settings['Access-Control-Allow-Origin']) {
-    res.set('Access-Control-Allow-Origin', settings['Access-Control-Allow-Origin']);
-  }
-
   res.type('json');
 
   res.status(status || 200);
