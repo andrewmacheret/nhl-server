@@ -31,11 +31,11 @@ function run(command, args, callback) {
 
 var send = function (req, res, obj, status) {
   if (settings['Access-Control-Allow-Origin']) {
-    res.header('Access-Control-Allow-Origin', settings['Access-Control-Allow-Origin']);
+    res.set('Access-Control-Allow-Origin', settings['Access-Control-Allow-Origin']);
   }
 
   res.type('json');
-
+  
   res.status(status || 200);
   var text;
   if (req.query.pretty !== undefined) {
@@ -66,7 +66,9 @@ var validateTeamName = function(req, res, teamName) {
       error: 'Team name must only contain letters and spaces',
       teamName: teamName
     }, 500);
+    return false;
   }
+  return true;
 };
 
 var validateDate = function(req, res, date) {
@@ -75,7 +77,9 @@ var validateDate = function(req, res, date) {
       error: "Date must be in the format 'YYYY-MM-DD'",
       date: date
     }, 500);
+    return false;
   }
+  return true;
 };
 
 console.log('registering /');
@@ -84,15 +88,15 @@ app.get('/', function(req, res) {
   
   send(req, res, {
     apis: [
-      '/:teamName',
-      '/:teamName/:date',
-      '/_css'
+      '/schedule/:teamName',
+      '/schedule/:teamName/:date',
+      '/css'
     ]
   });
 });
 
-console.log('registering /_css');
-app.get('/_css', function(req, res) {
+console.log('registering /css');
+app.get('/css', function(req, res) {
   console.log('GET ' + req.originalUrl);
   
   run(nhl_css_script, [], function(json, err) {
@@ -106,27 +110,27 @@ app.get('/_css', function(req, res) {
   });
 });
 
-console.log('registering /:teamName');
-app.get('/:teamName', function(req, res) {
+console.log('registering /schedule/:teamName');
+app.get('/schedule/:teamName', function(req, res) {
   console.log('GET ' + req.originalUrl);
   
   var teamName = req.params.teamName.toLowerCase();
   var date = new Date().toISOString().substring(0, 10);
 
-  validateTeamName(req, res, teamName);
+  if (!validateTeamName(req, res, teamName)) return;
 
   nhlApi(req, res, teamName, date);
 });
 
-console.log('registering /:teamName/:date');
-app.get('/:teamName/:date', function(req, res) {
+console.log('registering /schedule/:teamName/:date');
+app.get('/schedule/:teamName/:date', function(req, res) {
   console.log('GET ' + req.originalUrl);
 
   var teamName = req.params.teamName.toLowerCase();
   var date = req.params.date;
 
-  validateTeamName(req, res, teamName);
-  validateDate(req, res, date);
+  if (!validateTeamName(req, res, teamName)) return;
+  if (!validateDate(req, res, date)) return;
 
   nhlApi(req, res, teamName, date);
 });
