@@ -12,4 +12,6 @@ RUN cd /tmp &&\
 WORKDIR /root
 ADD app .
 
+EXPOSE 80
+
 CMD ["node", "./server.js"]
