@@ -9,7 +9,13 @@ var settings = JSON.parse(fs.readFileSync(path.resolve(__dirname, './settings.js
 var nhl_script = path.resolve(__dirname, './nhl.sh');
 var nhl_css_script = path.resolve(__dirname, './nhl-css.sh');
 
-function run(command, args, callback) {
+var newLocalDate = function() {
+  return new Date()
+    .toLocaleDateString("en-US", {year: 'numeric', month: '2-digit', day: '2-digit', timeZone: "America/Los_Angeles"})
+    .replace(/^(..)\/(..)\/(....)$/, '$3-$1-$2');
+};
+
+var run = function(command, args, callback) {
   console.log(command, args);
   var child = spawn(command, args);
   var response = '';
@@ -27,7 +33,7 @@ function run(command, args, callback) {
       callback(null, error);
     }
   });
-}
+};
 
 var send = function (req, res, obj, status) {
   if (settings['Access-Control-Allow-Origin']) {
@@ -35,7 +41,7 @@ var send = function (req, res, obj, status) {
   }
 
   res.type('json');
-  
+
   res.status(status || 200);
   var text;
   if (req.query.pretty !== undefined) {
@@ -115,7 +121,7 @@ app.get('/schedule/:teamName', function(req, res) {
   console.log('GET ' + req.originalUrl);
   
   var teamName = req.params.teamName.toLowerCase();
-  var date = new Date().toISOString().substring(0, 10);
+  var date = newLocalDate();
 
   if (!validateTeamName(req, res, teamName)) return;
 
