@@ -12,7 +12,7 @@ var nhl_css_script = path.resolve(__dirname, './nhl-css.sh');
 
 if (settings.origin) {
   app.use(cors({origin: settings.origin}));
-  //app.options('*', cors());
+  app.options('*', cors());
 }
 
 var newLocalDate = function() {
