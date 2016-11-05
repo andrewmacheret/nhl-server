@@ -86,7 +86,7 @@ app.get('/', function(req, res) {
     apis: [
       '/:teamName',
       '/:teamName/:date',
-      '/css'
+      '/_css'
     ]
   });
 });
