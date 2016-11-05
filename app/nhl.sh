@@ -76,6 +76,7 @@ echo "$schedule" | jq --arg teamId "$team_id" --argjson fromId "$nhl_team_id_to_
       title: $title,
       home: {id: .home, name: $homeName},
       away: {id: .away, name: $awayName},
+      isHome: $isHome,
       gameDate,
       broadcasts  
     }
