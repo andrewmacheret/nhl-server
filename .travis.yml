@@ -1,0 +1,61 @@
+sudo: required
+
+language: node_js
+
+node_js:
+  - '6'
+
+addons:
+  ssh_known_hosts: servers.andrewmacheret.com
+
+env:
+  global:
+    # DOCKER_USERNAME and DOCKER_PASSWORD
+    - secure: "RmC9PfJwgCltl/OOVTFjK/zHa+Cf35kSNZmU4fta+Fk44lr2kBPIwbQkV6dsd0nDA9nbOOw0PXpXTTnNT5NImykcLKGEhfcWuhrP+IiqctXRdII0SpKtpVZLbcC2mndztdcgz42xU5JZpZYXBEYz2gsbNHz/znZR+M8sR59jDDDvfUdUnVOTcrBekCeM+qJWkydicO+NeQSw8GuEuY2GgCBXZw4j7UrqQQPhWGzCcGGaFWIdTcEQH/EVL6Qxlotu3YjvRB845DHTTaghoPE4QtVAE+6fh5AD2g6ekGyl96o8EInqAKtBf0JA1wJUIrtZnu/p8u0fOjVvPQz+oik6c9Xsfu9mX9VY1F5rxhGlOSNcy5AFRB2qUcPa5/Rk+UiuSE7aw7BRJ+EuNgMvJ5vF1Z0w6pB1u46f3XIlM2HlLgy2WjbGzfE+K1w8kN1MvwAO+JCFZW/mnuievTF1uxKj1OyCVu1xLzdPTsi0jbGNj153+gK2JDauEpwtsmqJIjZuZLy60+Oq7ZuLElFdkQlY3dod4elwFbJzu6n3Vf49Bu6j/1sVYDQUZgFFeZKFL4YmUTNTpZ9dopXtnH6Miz1SFMtGMW068nOCeEd1xuc8fGXnHdLs+h+nMTQDdGRWNVrGprXesHkFa2iimAyi+msEASXu15fQs55xZ73z2oIETKY="
+    - secure: "gulodZ2TjMH7CR/d/t+/W0e7CQBwSipYAqrWaSwmov2vLgR/phh2XzEm+LrVqgRmzHVVmCrzYDO21WJYyyNXUmLffrrEK5V/Zegd4EWH5xpPCQsnmQYBuWOaw8UkBkighjhT6/ObzyAUHy8K1fMVr6gl5/hMm8LAWBhiVy3qlwhkhG1eoOB2S2YjNNBqaS30WcOjSrPd8dc0+6V8WYEVmzqSHaISWaUyE8s+S/BtXK6VFyKpqWx93ijpfqA14YtPPAn/CexKumUTfTqUpgofELt9LNSvLFR39ZlED/IeNdsGwT7BazwORNsUA5R/B5e8VMgbcPfO6f6qTwV5OTy9YEwD6pGjMTnd22WPc6IMqbhXbT8s4mn9qItQdsi7IVpVKTN/8TdgtOKkMliTLPQN4vZ0pXp54synxvfz6vf8Hc70eTfzmIezfApl7JZ8/GgaGMetNjo8gjrNUbxoYds6N/KsnSwSKGBU1uuMQUogAXatoAYV7I7VrVWDfmeDxwn9PjzFfgouWqmla0LjajS3wfpip2+ESD03ftGZvrg/soQMfcSJbi1Bl+iR9e3WgHXEie8AiRqz4EjqGRkgX4RFOXAx4McgxV55DMbcCRk6WlOCf4SkJ3B+ba2o/qyTTMnAHQCNBXcEh1NYa4j7HrSX1pdY4xp2Ttr3ejnsAb5J+RE="
+    - SERVICE_NAME='nhl'
+    - CONTAINER_NAME='nhl-server'
+    - VERSION=1.0
+    - TEST_PORT='9999'
+    - TEST_TEAM_NAME='sharks'
+    - TEST_DATE='2016-11-05'
+
+services:
+  - docker
+
+install:
+  # install dependencies
+  - set -e
+  - cd app && npm install && cd ..
+
+script:
+  # build and test
+  - set -e
+  - docker build -t "${DOCKER_USERNAME}/${CONTAINER_NAME}":latest .
+  - docker run -d --name "${CONTAINER_NAME}" -p "${TEST_PORT}":80 "${DOCKER_USERNAME}/${CONTAINER_NAME}"
+  - sleep 1
+
+  - docker exec -it "${CONTAINER_NAME}" ./nhl.sh "${TEST_TEAM_NAME}"
+  - docker exec -it "${CONTAINER_NAME}" ./nhl.sh "${TEST_TEAM_NAME}" "${TEST_DATE}"
+  - docker exec -it "${CONTAINER_NAME}" ./nhl-css.sh
+
+  - curl "http://localhost:${TEST_PORT}/"
+  - curl "http://localhost:${TEST_PORT}/${TEST_TEAM_NAME}"
+  - curl "http://localhost:${TEST_PORT}/${TEST_TEAM_NAME}/${TEST_DATE}"
+  - curl "http://localhost:${TEST_PORT}/_css"
+
+  - docker rm -f "${CONTAINER_NAME}"
+
+after_success:
+  # push to docker hub
+  - set -e
+  - docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
+  - docker tag "${DOCKER_USERNAME}/${CONTAINER_NAME}":latest "${DOCKER_USERNAME}/${CONTAINER_NAME}":"${VERSION}"
+  - docker push "${DOCKER_USERNAME}/${CONTAINER_NAME}":latest
+  - docker push "${DOCKER_USERNAME}/${CONTAINER_NAME}":"${VERSION}"
+  # ssh deploy
+  - openssl aes-256-cbc -K $encrypted_eeeb9006b378_key -iv $encrypted_eeeb9006b378_iv -in id_rsa_a1-server.enc -out "${TRAVIS_BUILD_DIR}/id_rsa_a1-server" -d
+  - eval "$(ssh-agent -s)"
+  - chmod 600 "${TRAVIS_BUILD_DIR}/id_rsa_a1-server"
+  - ssh-add "${TRAVIS_BUILD_DIR}/id_rsa_a1-server"
+  - ssh core@servers.andrewmacheret.com "~/servers/a1-servers/restart-service.sh ${SERVICE_NAME}"
