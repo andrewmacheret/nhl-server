@@ -10,8 +10,8 @@ var settings = JSON.parse(fs.readFileSync(path.resolve(__dirname, './settings.js
 var nhl_script = path.resolve(__dirname, './nhl.sh');
 var nhl_css_script = path.resolve(__dirname, './nhl-css.sh');
 
-if (settings.origin) {
-  app.use(cors({origin: settings.origin}));
+if (settings.origins) {
+  app.use(cors({origin: settings.origins}));
   app.options('*', cors());
 }
 
