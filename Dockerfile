@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk -Uuv add bash curl jq nodejs unzip 
+RUN apk add --no-cache bash curl jq nodejs unzip
 # https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
 
 RUN cd /tmp &&\
